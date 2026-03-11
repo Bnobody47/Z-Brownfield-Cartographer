@@ -8,8 +8,9 @@ from typing import Optional
 
 from rich.console import Console
 
-from src.analyzers.tree_sitter_analyzer import TreeSitterAnalyzer
+from src.analyzers.tree_sitter_analyzer import ParsedSymbol, TreeSitterAnalyzer
 from src.graph.knowledge_graph import KnowledgeGraph
+from src.models.graphs import EdgeType
 from src.utils import guess_language, iter_files, relpath_posix
 
 
@@ -36,6 +37,7 @@ class Surveyor:
         # index python module candidates for import resolution
         py_files = [p for p in files if p.suffix.lower() == ".py"]
         module_index = self._build_python_module_index(repo_root, py_files)
+        public_symbols_by_module: dict[str, list[ParsedSymbol]] = {}
 
         for p in files:
             rel = rel_by_path[p]
@@ -53,13 +55,15 @@ class Surveyor:
                 try:
                     tree = self.ts.parse_file(p, "python")
                     imports = self.ts.extract_python_imports(tree)
+                    symbols = self.ts.extract_python_public_symbols(tree)
+                    public_symbols_by_module[rel] = symbols
                     for imp in imports:
                         target_rel = self._resolve_python_import(imp, p, repo_root, module_index)
                         if target_rel:
                             g.add_edge(
                                 node_id,
                                 f"module:{target_rel}",
-                                edge_type="IMPORTS",
+                                edge_type=EdgeType.IMPORTS,
                                 import_module=imp,
                             )
                 except Exception as e:
@@ -81,6 +85,34 @@ class Surveyor:
         sccs = [c for c in g.strongly_connected_components() if len(c) > 1]
         if sccs:
             g.graph.graph["strongly_connected_components"] = sccs
+
+        # dead code candidates: modules with public symbols that no other module imports
+        import_targets: set[str] = set()
+        for u, v, data in g.edges():
+            if data.get("edge_type") == EdgeType.IMPORTS.value:
+                import_targets.add(v)
+
+        dead_modules: list[str] = []
+        for module_rel, symbols in public_symbols_by_module.items():
+            node_id = f"module:{module_rel}"
+            if node_id not in import_targets and symbols:
+                dead_modules.append(node_id)
+                g.graph.nodes[node_id]["is_dead_code_candidate"] = True
+
+        # rank high-velocity, high-pagerank modules for downstream agents
+        ranked = []
+        for node_id, data in g.nodes():
+            if not node_id.startswith("module:"):
+                continue
+            pr_score = data.get("pagerank", 0.0) or 0.0
+            vel = data.get("change_velocity_30d", 0.0) or 0.0
+            score = 0.6 * pr_score + 0.4 * vel
+            ranked.append((score, node_id))
+        ranked.sort(reverse=True)
+        g.graph.graph["ranked_critical_modules"] = [
+            {"module": nid, "score": score} for score, nid in ranked[:20]
+        ]
+        g.graph.graph["dead_code_candidates"] = dead_modules
 
         return SurveyorResult(module_graph=g, warnings=warnings)
 

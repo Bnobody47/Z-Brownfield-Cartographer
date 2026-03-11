@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable
 
 import networkx as nx
+
+from src.models.graphs import EdgeModel, EdgeType
 
 
 @dataclass
@@ -23,8 +25,22 @@ class KnowledgeGraph:
     def add_node(self, node_id: str, **attrs: Any) -> None:
         self.graph.add_node(node_id, **attrs)
 
-    def add_edge(self, src: str, dst: str, edge_type: str, **attrs: Any) -> None:
-        self.graph.add_edge(src, dst, edge_type=edge_type, **attrs)
+    def add_edge(self, src: str, dst: str, edge_type: EdgeType | str, **attrs: Any) -> None:
+        """
+        Add a typed edge to the underlying graph, validating against EdgeType.
+        """
+        if not isinstance(edge_type, EdgeType):
+            try:
+                edge_type = EdgeType(str(edge_type))
+            except ValueError as exc:  # pragma: no cover - defensive
+                raise ValueError(f"Unknown edge_type {edge_type!r}") from exc
+        edge = EdgeModel(source=src, target=dst, edge_type=edge_type, attrs=attrs)
+        self.graph.add_edge(
+            edge.source,
+            edge.target,
+            edge_type=edge.edge_type.value,
+            **edge.attrs,
+        )
 
     def nodes(self) -> Iterable[tuple[str, dict[str, Any]]]:
         return self.graph.nodes(data=True)

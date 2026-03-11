@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable, List
 
 from tree_sitter import Node
 from tree_sitter_languages import get_parser
@@ -120,4 +120,47 @@ class TreeSitterAnalyzer:
             start_line=node.start_point[0] + 1,
             end_line=node.end_point[0] + 1,
         )
+
+    # ---- SQL helpers (multi-language AST parsing) ----
+
+    def extract_sql_table_references(self, path: Path) -> List[str]:
+        """
+        Best-effort SQL table reference extraction using tree-sitter for SQL.
+        This is complementary to sqlglot and demonstrates multi-language AST use.
+        """
+        tree = self.parse_file(path, "sql")
+        root = tree.root_node
+        tables: list[str] = []
+
+        def walk(node: Node) -> None:
+            if node.type == "table_reference":
+                tables.append(node.text.decode("utf-8", errors="replace"))
+            for child in node.children:
+                walk(child)
+
+        walk(root)
+        return tables
+
+    # ---- YAML helpers ----
+
+    def extract_yaml_top_keys(self, path: Path) -> list[str]:
+        """
+        Use tree-sitter YAML to extract top-level mapping keys.
+        Useful for quickly understanding pipeline config structure.
+        """
+        tree = self.parse_file(path, "yaml")
+        root = tree.root_node
+        keys: list[str] = []
+
+        def walk(node: Node) -> None:
+            if node.type == "block_mapping_pair":
+                # key: value
+                if node.child_count >= 1:
+                    key_node = node.children[0]
+                    keys.append(key_node.text.decode("utf-8", errors="replace").strip())
+            for child in node.children:
+                walk(child)
+
+        walk(root)
+        return keys
 

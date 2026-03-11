@@ -4,7 +4,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
 import sqlglot
 from sqlglot import exp
@@ -16,6 +16,7 @@ class SqlStatementLineage:
     sources: set[str]
     targets: set[str]
     statement_sql: str
+    line_range: Tuple[int, int] | None = None
 
 
 def _stable_id(*parts: str) -> str:
@@ -35,15 +36,27 @@ class SQLLineageAnalyzer:
         cleaned = self._preprocess_sql(raw)
         stmts = sqlglot.parse(cleaned, read=self.dialect)
         out: list[SqlStatementLineage] = []
+        # simple line splitting used to approximate per-statement line ranges
+        lines = cleaned.splitlines()
         for i, stmt in enumerate(stmts):
             sources = {self._normalize_table(t) for t in self._find_source_tables(stmt)}
             targets = {self._normalize_table(t) for t in self._find_target_tables(stmt)}
+            # best-effort line range: find the first line containing the first few characters of the statement
+            stmt_sql = stmt.sql(dialect=self.dialect) if hasattr(stmt, "sql") else str(stmt)
+            snippet = stmt_sql.strip().splitlines()[0][:40]
+            start_line = 1
+            for idx, line in enumerate(lines, start=1):
+                if snippet and snippet in line:
+                    start_line = idx
+                    break
+            end_line = max(start_line, start_line + max(0, stmt_sql.count("\n")))
             out.append(
                 SqlStatementLineage(
                     statement_index=i,
                     sources={s for s in sources if s},
                     targets={t for t in targets if t},
-                    statement_sql=stmt.sql(dialect=self.dialect) if hasattr(stmt, "sql") else str(stmt),
+                    statement_sql=stmt_sql,
+                    line_range=(start_line, end_line),
                 )
             )
         return out
