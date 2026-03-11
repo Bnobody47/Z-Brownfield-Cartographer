@@ -1,0 +1,208 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel2: rgba(255, 255, 255, 0.1);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.7);
+  --border: rgba(255, 255, 255, 0.14);
+  --accent: #7c3aed;
+  --accent2: #22c55e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji";
+  background: radial-gradient(900px 500px at 20% 10%, rgba(124, 58, 237, 0.22), transparent 60%),
+    radial-gradient(900px 500px at 80% 0%, rgba(34, 197, 94, 0.12), transparent 55%),
+    radial-gradient(1200px 900px at 60% 100%, rgba(59, 130, 246, 0.12), transparent 60%),
+    var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: inherit;
+}
+
+.shell {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.topbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  background: rgba(11, 18, 32, 0.65);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.title h1 {
+  font-size: 14px;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+
+.title .sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 14px;
+  padding: 14px;
+  height: calc(100vh - 58px);
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.04));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.left {
+  padding: 14px;
+  overflow: auto;
+}
+
+.right {
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.graphHeader {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.graphHeader .pill {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+}
+
+.graph {
+  height: 100%;
+  width: 100%;
+}
+
+.btnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  transition: transform 0.06s ease, background 0.12s ease;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btnPrimary {
+  border-color: rgba(124, 58, 237, 0.6);
+  background: rgba(124, 58, 237, 0.18);
+}
+
+.btnPrimary:hover {
+  background: rgba(124, 58, 237, 0.26);
+}
+
+.drop {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.drop strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.drop .hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.kv {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.kv h3 {
+  font-size: 12px;
+  margin: 0;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+
+.pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.small {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+

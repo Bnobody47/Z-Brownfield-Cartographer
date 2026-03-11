@@ -22,6 +22,16 @@ cartographer analyze C:\path\to\repo
 - `.cartography/module_graph.json`: module import graph + basic metrics
 - `.cartography/lineage_graph.json`: dataset lineage graph (currently SQL-focused via `sqlglot`)
 
+## Web graph viewer (React)
+
+Interactive viewer for `.cartography/*.json` graphs (upload the JSON; nothing leaves your machine):
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
 ## Notes
 
 - Git velocity is best-effort (requires `git` and a real git repo).

@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/types/cytoscape-fcose.d.ts","./src/ui/app.tsx","./src/ui/types.ts","./src/ui/graph/graphview.tsx","./src/ui/graph/buildelements.ts"],"version":"5.9.3"}
