@@ -1,0 +1,43 @@
+Metadata-Version: 2.4
+Name: brownfield-cartographer
+Version: 0.1.0
+Summary: The Brownfield Cartographer: codebase intelligence for rapid FDE onboarding.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: networkx>=3.2
+Requires-Dist: pydantic>=2.6
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: rich>=13.7
+Requires-Dist: sqlglot>=25.0
+Requires-Dist: tree-sitter>=0.22
+Requires-Dist: tree-sitter-languages>=1.10.2
+Requires-Dist: typer>=0.12
+
+# The Brownfield Cartographer
+
+Multi-agent codebase intelligence system for rapidly mapping unfamiliar production data/codebases.
+
+## Install (uv recommended)
+
+```bash
+uv venv
+uv pip install -e .
+```
+
+## Run (interim: Surveyor + Hydrologist)
+
+Analyze a **local** repo/path (writes artifacts into `<repo>/.cartography/`):
+
+```bash
+cartographer analyze C:\path\to\repo
+```
+
+## Outputs
+
+- `.cartography/module_graph.json`: module import graph + basic metrics
+- `.cartography/lineage_graph.json`: dataset lineage graph (currently SQL-focused via `sqlglot`)
+
+## Notes
+
+- Git velocity is best-effort (requires `git` and a real git repo).
+- Parsing is best-effort: unparseable files are logged and skipped.
