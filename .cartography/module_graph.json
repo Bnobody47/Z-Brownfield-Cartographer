@@ -1,135 +1,224 @@
 {
   "directed": true,
-  "edges": [],
+  "edges": [
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.orchestrator",
+      "source": "module:src/cli.py",
+      "target": "module:src/orchestrator.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.agents.hydrologist",
+      "source": "module:src/orchestrator.py",
+      "target": "module:src/agents/hydrologist.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.agents.surveyor",
+      "source": "module:src/orchestrator.py",
+      "target": "module:src/agents/surveyor.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.models.graphs",
+      "source": "module:src/orchestrator.py",
+      "target": "module:src/models/graphs.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.analyzers.sql_lineage",
+      "source": "module:src/agents/hydrologist.py",
+      "target": "module:src/analyzers/sql_lineage.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.graph.knowledge_graph",
+      "source": "module:src/agents/hydrologist.py",
+      "target": "module:src/graph/knowledge_graph.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.utils",
+      "source": "module:src/agents/hydrologist.py",
+      "target": "module:src/utils.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.analyzers.tree_sitter_analyzer",
+      "source": "module:src/agents/surveyor.py",
+      "target": "module:src/analyzers/tree_sitter_analyzer.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.graph.knowledge_graph",
+      "source": "module:src/agents/surveyor.py",
+      "target": "module:src/graph/knowledge_graph.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": "src.utils",
+      "source": "module:src/agents/surveyor.py",
+      "target": "module:src/utils.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": ".nodes",
+      "source": "module:src/models/__init__.py",
+      "target": "module:src/models/nodes.py"
+    },
+    {
+      "edge_type": "IMPORTS",
+      "import_module": ".graphs",
+      "source": "module:src/models/__init__.py",
+      "target": "module:src/models/graphs.py"
+    }
+  ],
   "graph": {},
   "multigraph": false,
   "nodes": [
     {
+      "change_velocity_30d": 1.0,
       "id": "module:src/cli.py",
       "language": "python",
       "last_modified": "2026-03-11T06:39:37.962248",
       "node_type": "ModuleNode",
-      "pagerank": 0.0625,
+      "pagerank": 0.045738161452134656,
       "path": "src/cli.py"
     },
     {
+      "change_velocity_30d": 1.0,
       "id": "module:src/orchestrator.py",
       "language": "python",
       "last_modified": "2026-03-11T06:39:33.410806",
       "node_type": "ModuleNode",
-      "pagerank": 0.0625,
+      "pagerank": 0.08461557122255654,
       "path": "src/orchestrator.py"
     },
     {
-      "id": "module:src/utils.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:37:55.509840",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/utils.py"
-    },
-    {
-      "id": "module:src/__init__.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:37:15.133649",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/__init__.py"
-    },
-    {
+      "change_velocity_30d": 1.0,
       "id": "module:src/agents/hydrologist.py",
       "language": "python",
       "last_modified": "2026-03-11T06:39:24.460874",
       "node_type": "ModuleNode",
-      "pagerank": 0.0625,
+      "pagerank": 0.0697125758769031,
       "path": "src/agents/hydrologist.py"
     },
     {
+      "change_velocity_30d": 1.0,
       "id": "module:src/agents/surveyor.py",
       "language": "python",
       "last_modified": "2026-03-11T06:42:53.499787",
       "node_type": "ModuleNode",
-      "pagerank": 0.0625,
+      "pagerank": 0.0697125758769031,
       "path": "src/agents/surveyor.py"
     },
     {
-      "id": "module:src/agents/__init__.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:39:59.009640",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/agents/__init__.py"
-    },
-    {
-      "id": "module:src/analyzers/dag_config_parser.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:38:46.612181",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/analyzers/dag_config_parser.py"
-    },
-    {
-      "id": "module:src/analyzers/sql_lineage.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:38:35.438668",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/analyzers/sql_lineage.py"
-    },
-    {
-      "id": "module:src/analyzers/tree_sitter_analyzer.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:38:20.380558",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/analyzers/tree_sitter_analyzer.py"
-    },
-    {
-      "id": "module:src/analyzers/__init__.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:40:04.235290",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/analyzers/__init__.py"
-    },
-    {
-      "id": "module:src/graph/knowledge_graph.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:45:16.412401",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/graph/knowledge_graph.py"
-    },
-    {
-      "id": "module:src/graph/__init__.py",
-      "language": "python",
-      "last_modified": "2026-03-11T06:40:06.350267",
-      "node_type": "ModuleNode",
-      "pagerank": 0.0625,
-      "path": "src/graph/__init__.py"
-    },
-    {
+      "change_velocity_30d": 1.0,
       "id": "module:src/models/graphs.py",
       "language": "python",
       "last_modified": "2026-03-11T06:37:28.073484",
       "node_type": "ModuleNode",
-      "pagerank": 0.0625,
+      "pagerank": 0.08915128076211405,
       "path": "src/models/graphs.py"
     },
     {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/utils.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:37:55.509840",
+      "node_type": "ModuleNode",
+      "pagerank": 0.0852419461023668,
+      "path": "src/utils.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/__init__.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:37:15.133649",
+      "node_type": "ModuleNode",
+      "pagerank": 0.045738161452134656,
+      "path": "src/__init__.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/analyzers/sql_lineage.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:38:35.438668",
+      "node_type": "ModuleNode",
+      "pagerank": 0.06549005377725073,
+      "path": "src/analyzers/sql_lineage.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/graph/knowledge_graph.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:45:16.412401",
+      "node_type": "ModuleNode",
+      "pagerank": 0.0852419461023668,
+      "path": "src/graph/knowledge_graph.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/analyzers/tree_sitter_analyzer.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:38:20.380558",
+      "node_type": "ModuleNode",
+      "pagerank": 0.06549005377725073,
+      "path": "src/analyzers/tree_sitter_analyzer.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/agents/__init__.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:39:59.009640",
+      "node_type": "ModuleNode",
+      "pagerank": 0.045738161452134656,
+      "path": "src/agents/__init__.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/analyzers/dag_config_parser.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:38:46.612181",
+      "node_type": "ModuleNode",
+      "pagerank": 0.045738161452134656,
+      "path": "src/analyzers/dag_config_parser.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/analyzers/__init__.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:40:04.235290",
+      "node_type": "ModuleNode",
+      "pagerank": 0.045738161452134656,
+      "path": "src/analyzers/__init__.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
+      "id": "module:src/graph/__init__.py",
+      "language": "python",
+      "last_modified": "2026-03-11T06:40:06.350267",
+      "node_type": "ModuleNode",
+      "pagerank": 0.045738161452134656,
+      "path": "src/graph/__init__.py"
+    },
+    {
+      "change_velocity_30d": 1.0,
       "id": "module:src/models/nodes.py",
       "language": "python",
       "last_modified": "2026-03-11T06:37:24.542417",
       "node_type": "ModuleNode",
-      "pagerank": 0.0625,
+      "pagerank": 0.0651768663373456,
       "path": "src/models/nodes.py"
     },
     {
+      "change_velocity_30d": 1.0,
       "id": "module:src/models/__init__.py",
       "language": "python",
       "last_modified": "2026-03-11T06:37:18.029335",
       "node_type": "ModuleNode",
-      "pagerank": 0.0625,
+      "pagerank": 0.045738161452134656,
       "path": "src/models/__init__.py"
     }
   ]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
@@ -31,7 +32,8 @@ class SQLLineageAnalyzer:
 
     def analyze_file(self, path: Path) -> list[SqlStatementLineage]:
         raw = path.read_text(encoding="utf-8", errors="replace")
-        stmts = sqlglot.parse(raw, read=self.dialect)
+        cleaned = self._preprocess_sql(raw)
+        stmts = sqlglot.parse(cleaned, read=self.dialect)
         out: list[SqlStatementLineage] = []
         for i, stmt in enumerate(stmts):
             sources = {self._normalize_table(t) for t in self._find_source_tables(stmt)}
@@ -45,6 +47,38 @@ class SQLLineageAnalyzer:
                 )
             )
         return out
+
+    _re_jinja_stmt = re.compile(r"\{%-?[\s\S]*?-?%\}", re.MULTILINE)
+    _re_jinja_expr = re.compile(r"\{\{[\s\S]*?\}\}", re.MULTILINE)
+    _re_ref = re.compile(r"\{\{\s*ref\(\s*'([^']+)'\s*\)\s*\}\}", re.IGNORECASE)
+    _re_ref2 = re.compile(r'\{\{\s*ref\(\s*"([^"]+)"\s*\)\s*\}\}', re.IGNORECASE)
+    _re_source = re.compile(
+        r"\{\{\s*source\(\s*'([^']+)'\s*,\s*'([^']+)'\s*\)\s*\}\}",
+        re.IGNORECASE,
+    )
+    _re_source2 = re.compile(
+        r'\{\{\s*source\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)\s*\}\}',
+        re.IGNORECASE,
+    )
+
+    def _preprocess_sql(self, sql: str) -> str:
+        """
+        Best-effort sanitizer for templated SQL (dbt/Jinja).
+
+        Goals:
+        - replace `{{ ref('model') }}` with `model`
+        - replace `{{ source('schema','table') }}` with `schema.table`
+        - strip `{% ... %}` blocks
+        - strip any remaining `{{ ... }}` blocks to keep sqlglot parsing
+        """
+        s = sql
+        s = self._re_jinja_stmt.sub(" ", s)
+        s = self._re_source.sub(r"\1.\2", s)
+        s = self._re_source2.sub(r"\1.\2", s)
+        s = self._re_ref.sub(r"\1", s)
+        s = self._re_ref2.sub(r"\1", s)
+        s = self._re_jinja_expr.sub(" ", s)
+        return s
 
     def _find_source_tables(self, stmt: exp.Expression) -> Iterable[str]:
         # Tables referenced anywhere; we'll subtract targets later in graph logic if needed

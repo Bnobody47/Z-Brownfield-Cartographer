@@ -52,6 +52,11 @@ class Hydrologist:
                 sources = sorted(stmt.sources)
                 targets = sorted(stmt.targets)
 
+                # dbt model convention: models/*.sql produces a dataset named after the file stem
+                if not targets and ("/models/" in f"/{rel}" or rel.startswith("models/")):
+                    model_name = Path(rel).stem
+                    targets = [model_name]
+
                 # If no explicit target is known, keep a synthetic output per statement
                 if not targets:
                     targets = [f"query::{rel}#{stmt.statement_index}"]
