@@ -1,7 +1,6 @@
 networkx>=3.2
 pydantic>=2.6
 pyyaml>=6.0
-reportlab>=4.0
 rich>=13.7
 sqlglot>=25.0
 tree-sitter==0.21.3

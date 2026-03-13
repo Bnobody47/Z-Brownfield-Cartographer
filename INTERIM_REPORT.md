@@ -11,13 +11,13 @@ See `RECONNAISSANCE.md` (target: `targets/jaffle_shop`).
 
 Conceptual four-agent pipeline (current interim run implements the first two, but the final architecture is already laid out this way):
 
-- **System input**: target repo path or GitHub URL (interim: local path only, e.g. `targets/jaffle_shop`).
+- **System input**: target repo path or GitHub URL (interim CLI accepts both and clones GitHub URLs into `targets/<owner>__<repo>`).
 - **Surveyor (Static Structure Analyst)**:
   - Reads files via tree-sitter (Python) and basic filesystem inspection.
   - Produces `ModuleNode`s and `IMPORTS` edges, plus structural metrics (PageRank, SCCs, change velocity when git history exists).
 - **Hydrologist (Data Flow & Lineage Analyst)**:
   - Uses `SQLLineageAnalyzer` (sqlglot + dbt/Jinja preprocessor) to extract table-level dependencies.
-  - Produces `DatasetNode`s, `TransformationNode`s, and `CONSUMES` / `PRODUCES` edges.
+  - Produces `DatasetNode`s, `TransformationNode`s, and `CONSUMES` / `PRODUCES` / `CONFIGURES` edges.
 - **Semanticist (LLM-Powered Purpose Analyst)**:
   - Planned: consumes graph + code to attach `purpose_statement`, `domain_cluster`, and documentation drift flags to nodes.
 - **Archivist (Living Context Maintainer)**:
@@ -27,6 +27,53 @@ Conceptual four-agent pipeline (current interim run implements the first two, bu
   - Shared store that Surveyor/Hydrologist (and later Semanticist/Archivist) read/write.
 - **System outputs (interim)**:
   - Per-target repo `.cartography/module_graph.json`, `.cartography/lineage_graph.json`, `.cartography/run_summary.json`.
+
+Mermaid-style architecture diagram (copy into a Mermaid renderer and tweak as needed):
+
+```mermaid
+flowchart LR
+    subgraph Inputs
+        A[Target codebase<br/>Local path or GitHub URL]
+    end
+
+    subgraph Agents
+        S[Surveyor<br/>Static structure]
+        H[Hydrologist<br/>Data lineage]
+        Se[Semanticist<br/>Purpose & domains]
+        Ar[Archivist<br/>CODEBASE & onboarding]
+    end
+
+    subgraph KG[Knowledge Graph & Stores]
+        G[(NetworkX DiGraph<br/>Module/Dataset/Function/Transformation nodes)]
+        V[(Vector store<br/>Semantic index)]
+    end
+
+    subgraph Outputs
+        O1[.cartography/module_graph.json]
+        O2[.cartography/lineage_graph.json]
+        O3[.cartography/CODEBASE.md]
+        O4[.cartography/onboarding_brief.md]
+        O5[.cartography/cartography_trace.jsonl]
+    end
+
+    A --> S
+    A --> H
+
+    S -- ModuleNodes<br/>IMPORTS edges --> G
+    H -- Dataset/TransformationNodes<br/>PRODUCES/CONSUMES/CONFIGURES --> G
+    Se -- Purpose statements<br/>Domain clusters --> G
+    Se -- Embeddings --> V
+
+    G --> Ar
+    V --> Ar
+
+    Ar --> O3
+    Ar --> O4
+    Ar --> O5
+
+    G --> O1
+    G --> O2
+```
 
 Artifacts written per analyzed repo:
 
@@ -169,7 +216,6 @@ If time becomes tight, the fallback is to:
 ## Known gaps (planned for final)
 
 - **Git velocity map**: compute 30/90‑day change frequency (requires full git history and robust path mapping).
-- **Dead code candidates**: needs repo-wide symbol reference counting (calls/import usage), not just imports.
-- **Python/YAML lineage**: pandas/PySpark I/O, Airflow DAG dependency extraction, dbt YAML (`schema.yml`) sources/tests metadata.
+- **Python runtime & DAG lineage**: pandas/PySpark I/O, Airflow DAG extraction, and deeper dbt YAML (`schema.yml`) semantics are not yet merged into the unified lineage graph.
 - **Semanticist + Archivist + Navigator**: purpose statements, doc drift flags, CODEBASE.md + onboarding brief generation, interactive query mode.
 

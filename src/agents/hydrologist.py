@@ -101,6 +101,8 @@ class Hydrologist:
                 if parsed.kind == "dbt_schema":
                     # Link config file to models/sources it describes
                     for model in data.get("models", []) or []:
+                        if not isinstance(model, dict):
+                            continue
                         name = model.get("name")
                         if not isinstance(name, str):
                             continue

@@ -11,7 +11,10 @@ src/cli.py
 src/orchestrator.py
 src/utils.py
 src/agents/__init__.py
+src/agents/archivist.py
 src/agents/hydrologist.py
+src/agents/navigator.py
+src/agents/semanticist.py
 src/agents/surveyor.py
 src/analyzers/__init__.py
 src/analyzers/dag_config_parser.py
@@ -19,6 +22,7 @@ src/analyzers/sql_lineage.py
 src/analyzers/tree_sitter_analyzer.py
 src/graph/__init__.py
 src/graph/knowledge_graph.py
+src/llm/openai_client.py
 src/models/__init__.py
 src/models/graphs.py
 src/models/nodes.py

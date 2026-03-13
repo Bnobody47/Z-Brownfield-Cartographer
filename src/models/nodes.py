@@ -43,3 +43,9 @@ class TransformationNode(BaseModel):
     source_file: str
     line_range: tuple[int, int] | None = None
     sql_query_if_applicable: Optional[str] = None
+
+
+class ConfigNode(BaseModel):
+    path: str
+    kind: str  # e.g. "dbt_schema", "airflow", "prefect", "unknown"
+    purpose_statement: Optional[str] = None
