@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.analyzers.dag_config_parser import DAGConfigAnalyzer
+from src.analyzers.python_data_flow import PythonDataFlowAnalyzer
 from src.analyzers.sql_lineage import SQLLineageAnalyzer
 from src.graph.knowledge_graph import KnowledgeGraph
 from src.models.graphs import EdgeType
@@ -27,6 +28,7 @@ class Hydrologist:
     def __init__(self, dialect: str | None = None) -> None:
         self.sql = SQLLineageAnalyzer(dialect=dialect)
         self.config = DAGConfigAnalyzer()
+        self.pyflow = PythonDataFlowAnalyzer()
 
     def run(self, repo_root: Path) -> HydrologistResult:
         g = KnowledgeGraph.empty()
@@ -115,6 +117,42 @@ class Hydrologist:
                                 storage_type="table",
                             )
                         g.add_edge(cfg_id, target, edge_type=EdgeType.CONFIGURES)
+
+            # Python dataflow lineage
+            if suffix == ".py":
+                try:
+                    events = self.pyflow.analyze_file(p)
+                except Exception:
+                    events = []
+                for ev in events:
+                    t_id = f"transformation:python:{rel}:{ev.line_range[0]}-{ev.line_range[1]}"
+                    g.add_node(
+                        t_id,
+                        node_type="TransformationNode",
+                        transformation_type="python",
+                        source_file=rel,
+                        line_range=ev.line_range,
+                    )
+                    for ds in ev.sources:
+                        d_id = f"dataset:{ds}"
+                        if d_id not in g.graph:
+                            g.add_node(
+                                d_id,
+                                node_type="DatasetNode",
+                                name=ds,
+                                storage_type="file" if "." in ds else "table",
+                            )
+                        g.add_edge(t_id, d_id, edge_type=EdgeType.CONSUMES)
+                    for ds in ev.targets:
+                        d_id = f"dataset:{ds}"
+                        if d_id not in g.graph:
+                            g.add_node(
+                                d_id,
+                                node_type="DatasetNode",
+                                name=ds,
+                                storage_type="file" if "." in ds else "table",
+                            )
+                        g.add_edge(t_id, d_id, edge_type=EdgeType.PRODUCES)
 
         return HydrologistResult(lineage_graph=g, warnings=warnings)
 

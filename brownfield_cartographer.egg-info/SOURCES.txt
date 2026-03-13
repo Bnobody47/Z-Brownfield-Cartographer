@@ -18,6 +18,7 @@ src/agents/semanticist.py
 src/agents/surveyor.py
 src/analyzers/__init__.py
 src/analyzers/dag_config_parser.py
+src/analyzers/python_data_flow.py
 src/analyzers/sql_lineage.py
 src/analyzers/tree_sitter_analyzer.py
 src/graph/__init__.py

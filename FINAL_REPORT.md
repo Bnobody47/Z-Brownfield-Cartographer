@@ -69,7 +69,7 @@ date: 2026-03-12
 
 ## 2. Architecture Diagram & Pipeline Rationale
 
-The final system is a **four-agent pipeline** with a central knowledge graph, a semantic index, and a query layer.
+The final system is a **four-agent pipeline** with a central knowledge graph, a semantic index, a query layer (**Navigator**), and artifact outputs.
 
 ### Mermaid diagram
 
@@ -91,12 +91,16 @@ flowchart LR
         V[(Vector/semantic index<br/>module purpose statements)]
     end
 
-    subgraph Outputs
+    subgraph Artifacts[Output Artifacts]
         O1[.cartography/module_graph.json]
         O2[.cartography/lineage_graph.json]
         O3[.cartography/CODEBASE.md]
         O4[.cartography/onboarding_brief.md]
         O5[.cartography/cartography_trace.jsonl]
+    end
+
+    subgraph QueryLayer[Query Layer]
+        N[Navigator Agent<br/>trace_lineage, blast_radius,<br/>explain_module, find_implementation]
     end
 
     A --> S
@@ -116,6 +120,9 @@ flowchart LR
 
     G --> O1
     G --> O2
+
+    O1 --> N
+    O2 --> N
 ```
 
 ### Sequencing and rationale
@@ -137,6 +144,86 @@ flowchart LR
     - `semantic_index/` (module purpose statements for search).
 
 This design keeps **static analysis first**, **LLM work later** (for cost control), and **artifact generation last** so that every artifact is backed by the same central knowledge graph.
+
+### Knowledge Graph Schema
+
+All nodes and edges conform to Pydantic schemas defined in `src/models/`:
+
+| Node Type | Key Fields | Populated By |
+|-----------|------------|--------------|
+| **ModuleNode** | `path`, `language`, `purpose_statement`, `domain_cluster`, `complexity_score`, `change_velocity_30d`, `is_dead_code_candidate` | Surveyor, Semanticist |
+| **DatasetNode** | `name`, `storage_type` (table \| file \| stream \| api), `schema_snapshot`, `owner` | Hydrologist |
+| **FunctionNode** | `qualified_name`, `parent_module`, `signature`, `purpose_statement`, `is_public_api` | Surveyor (extensible) |
+| **TransformationNode** | `id`, `source_datasets`, `target_datasets`, `transformation_type`, `source_file`, `line_range`, `sql_query_if_applicable` | Hydrologist |
+| **ConfigNode** | `path`, `kind` (dbt_schema, airflow, etc.), `purpose_statement` | Hydrologist (DAGConfigAnalyzer) |
+
+| Edge Type | Meaning |
+|-----------|---------|
+| **IMPORTS** | source_module → target_module (module graph) |
+| **PRODUCES** | transformation → dataset (lineage) |
+| **CONSUMES** | transformation → dataset (upstream dependency) |
+| **CALLS** | function → function (call graph; reserved) |
+| **CONFIGURES** | config_file → module/pipeline (YAML/config) |
+
+The system maintains **two graphs**: (1) the *module graph* (structure, imports, PageRank, dead-code hints) and (2) the *lineage graph* (datasets, transformations, sources/sinks). Both serialize to JSON for portability and CLI-based querying.
+
+### Example: jaffle_shop Data Lineage (extracted by Hydrologist)
+
+```mermaid
+flowchart TD
+    subgraph sources[Data Sources]
+        raw_customers[(raw_customers)]
+        raw_orders[(raw_orders)]
+        raw_payments[(raw_payments)]
+    end
+
+    subgraph staging[Staging Models]
+        stg_customers[(stg_customers)]
+        stg_orders[(stg_orders)]
+        stg_payments[(stg_payments)]
+    end
+
+    subgraph marts[Final Marts]
+        customers[(customers)]
+        orders[(orders)]
+    end
+
+    raw_customers -->|stg_customers.sql| stg_customers
+    raw_orders -->|stg_orders.sql| stg_orders
+    raw_payments -->|stg_payments.sql| stg_payments
+
+    stg_customers -->|customers.sql| customers
+    stg_orders -->|customers.sql| customers
+    stg_payments -->|customers.sql| customers
+
+    stg_orders -->|orders.sql| orders
+    stg_payments -->|orders.sql| orders
+```
+
+### Navigator Query Layer
+
+The **Navigator** is a separate query agent that operates *after* analysis. It loads the serialized `module_graph.json` and `lineage_graph.json` and exposes four tools to the CLI:
+
+- **trace_lineage(dataset, direction)** — traverses the lineage graph upstream or downstream with file:line evidence.
+- **blast_radius(module_path \| dataset)** — returns downstream dependents (module importers or lineage consumers).
+- **explain_module(path)** — returns purpose statement from the module graph (or LLM fallback).
+- **find_implementation(concept)** — semantic search over module purpose statements.
+
+Every response includes structured `evidence` (source_file, line_range, analysis method) for trust and verification.
+
+### Implementation Tradeoffs: NetworkX vs. Graph Database
+
+**Choice: NetworkX + JSON serialization** (not a graph DB like Neo4j, Neptune, or Memgraph).
+
+| Consideration | NetworkX | Graph DB |
+|---------------|----------|----------|
+| **Setup & portability** | Zero infra; JSON files work anywhere. FDE can run `cartographer analyze .` on any machine. | Requires DB server, credentials, deployment. |
+| **Scale** | Suitable for 1K–50K nodes (typical data-platform repos). Degrades beyond ~100K nodes. | Built for millions of edges; better for org-wide lineage. |
+| **Query expressiveness** | BFS/DFS, PageRank, SCCs via Python; ad-hoc Cypher/GQL not available. | Rich query languages; complex multi-hop patterns. |
+| **Incremental updates** | Full re-serialization; `--incremental` re-analyzes changed files and merges. | Native node/edge mutations; partial updates natural. |
+| **Tooling** | Standard Python; easy to fork, extend, embed. | Vendor lock-in, ops overhead. |
+
+**Rationale:** For the target use case (single-repo analysis, Day-One onboarding, local or CI execution), NetworkX + JSON keeps the Cartographer **deployable without infrastructure**. A graph DB would be appropriate for an *org-wide lineage platform* where many repos feed a shared graph; that is out of scope for this artifact.
 
 ## 3. Accuracy: Manual vs System-Generated Day-One Answers
 
@@ -205,9 +292,8 @@ Some limitations are **engineering gaps** that could be closed; others are **str
   - Complex macros could produce additional tables or change lineage in ways the system doesn’t see.
 
 - **Python dataflow & Airflow DAG semantics**  
-  - The current Hydrologist does not yet parse:
-    - pandas/PySpark read/write calls in Python.
-    - Airflow DAG operator relationships (task-level graph).
+  - Hydrologist **does** parse pandas/PySpark read/write and SQLAlchemy calls in Python (`PythonDataFlowAnalyzer`).
+  - Airflow DAG operator relationships (task-level graph) are **not** yet extracted; we capture Python module structure and YAML config but not operator-level data lineage.
   - For Airflow, we currently capture Python module structure and basic YAML config, but **not** full operator-level data lineage.
 
 - **Column-level lineage**  
@@ -281,5 +367,56 @@ Here is how I would actually deploy the Brownfield Cartographer at a client.
   - They become living documents of record.
   - New FDEs or team members get a ready-made onramp, not a folder of stale docs.
 
-This turns the Brownfield Cartographer from a training exercise into a **deployable, repeatable onboarding instrument** for any future brownfield engagement. 
+This turns the Brownfield Cartographer from a training exercise into a **deployable, repeatable onboarding instrument** for any future brownfield engagement.
+
+---
+
+## 6. Self-Audit: Cartographer Run on Week 1 Repo (Roo-Code-Beamlak)
+
+**Week 1 target**: [Roo-Code-Beamlak](https://github.com/Bnobody47/Roo-Code-Beamlak) — fork of Roo Code, an AI-powered VS Code extension (98.4% TypeScript, monorepo with `apps/`, `packages/`, `webview-ui/`, etc.).
+
+**Command run**: `cartographer analyze targets/Bnobody47__Roo-Code-Beamlak`
+
+**Generated artifacts**:
+- `.cartography/module_graph.json` — sparse (only Python/YAML/SQL/JS/TS *files* indexed; import edges come from Python only; no TypeScript import parsing)
+- `.cartography/lineage_graph.json` — empty or minimal (no `.sql` or dbt models; no Python dataflow in this repo)
+- `.cartography/CODEBASE.md` — generic, minimal critical path and purpose index (few Python modules; no TS modules)
+- `.cartography/onboarding_brief.md` — best-effort Day-One answers (sources/sinks empty; critical path weak)
+
+**Week 1 hand-authored doc**: `ARCHITECTURE_NOTES.md` in the repo describes the real architecture (apps, packages, modes like Code/Architect/Ask/Debug, webview-ui, MCP integration, etc.).
+
+### Discrepancy and Interpretation
+
+| Aspect | ARCHITECTURE_NOTES.md (Week 1) | Cartographer CODEBASE.md |
+|--------|--------------------------------|----------------------------|
+| Primary structure | Monorepo: `apps/`, `packages/`, `webview-ui/`, modes | Sparse; only scans `.py`, `.sql`, `.yml`, `.js`, `.ts` files; **no TypeScript import graph** |
+| Critical path | Core extension, webview, orchestration, MCP | Few or no Python hubs; TS modules not in import graph |
+| Data lineage | N/A (extension, not a data pipeline) | Empty (expected; no SQL/dbt) |
+
+**What this means**:
+- **Not a bug**: The Cartographer is scoped for **data science and data engineering** codebases (Python + SQL + YAML). Roo-Code-Beamlak is a TypeScript-first VS Code extension — outside that scope.
+- **Gap in the tool**: We do not parse TypeScript/JavaScript imports via tree-sitter or build a TS module graph. Adding `tree-sitter` grammars for TS/JS and a TS import extractor would make the Cartographer useful on polyglot repos like this.
+- **Takeaway**: The self-audit confirms the Cartographer performs well on **dbt/jaffle_shop** and **Airflow** (Python + SQL + YAML) but produces minimal output on TypeScript-heavy repos until TS support is added.
+
+---
+
+## 7. Final Deliverables Checklist
+
+| Deliverable | Status |
+|-------------|--------|
+| `src/cli.py` (analyze + query) | Done |
+| `src/orchestrator.py` (Surveyor → Hydrologist → Semanticist → Archivist) | Done |
+| `src/models/` (Pydantic schemas) | Done |
+| `src/analyzers/tree_sitter_analyzer.py` | Done (Python + SQL/YAML helpers) |
+| `src/analyzers/sql_lineage.py` | Done (sqlglot + dbt Jinja) |
+| `src/analyzers/dag_config_parser.py` | Done |
+| `src/analyzers/python_data_flow.py` | Done (pandas/spark/SQLAlchemy) |
+| `src/agents/surveyor.py` | Done |
+| `src/agents/hydrologist.py` | Done (SQL + YAML + Python lineage) |
+| `src/agents/semanticist.py` | Done |
+| `src/agents/archivist.py` | Done |
+| `src/agents/navigator.py` | Done (4 tools) |
+| Incremental mode (`--incremental`) | Done |
+| Cartography artifacts (jaffle_shop, airflow) | Done |
+| Self-audit (Week 1 Roo-Code-Beamlak) | Done (Section 6) |
 

@@ -71,8 +71,20 @@ def main(ctx: typer.Context) -> None:
 
 
 @app.command("analyze")
-def analyze_cmd(repo: str = typer.Argument(..., help="Local repo path or GitHub URL")) -> None:
-    _run_analyze(repo)
+def analyze_cmd(
+    repo: str = typer.Argument(..., help="Local repo path or GitHub URL"),
+    incremental: bool = typer.Option(False, help="Skip analysis if no new commits since last run"),
+) -> None:
+    repo_root = _resolve_repo(repo)
+    console.print(f"[bold]Analyzing[/bold] {repo_root}")
+    out = Orchestrator().analyze(repo_root, incremental=incremental)
+    console.print("[bold green]Done.[/bold green]")
+    console.print(f"- module graph: {out.module_graph_path}")
+    console.print(f"- lineage graph: {out.lineage_graph_path}")
+    if out.codebase_md_path:
+        console.print(f"- CODEBASE: {out.codebase_md_path}")
+    if out.onboarding_brief_path:
+        console.print(f"- onboarding brief: {out.onboarding_brief_path}")
 
 
 @app.command("query")
