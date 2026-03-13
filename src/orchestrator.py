@@ -85,8 +85,8 @@ class Orchestrator:
         lineage_graph_path = carto_dir / "lineage_graph.json"
         hydro.lineage_graph.write_json(lineage_graph_path)
 
-        console.print("[bold]Semanticist[/bold] generating purpose statements (best-effort)")
-        sem = self.semanticist.run(repo_root, survey.module_graph)
+        console.print("[bold]Semanticist[/bold] generating purpose statements and Day-One Q&A (best-effort)")
+        sem = self.semanticist.run(repo_root, survey.module_graph, hydro.lineage_graph)
         # overwrite module graph with purpose/domain info
         sem.updated_module_graph.write_json(module_graph_path)
 
@@ -107,6 +107,7 @@ class Orchestrator:
         summary.warnings.extend(survey.warnings)
         summary.warnings.extend(hydro.warnings)
         summary.warnings.extend(sem.warnings)
+        summary.stats.update(sem.stats)
         summary.finished_at = datetime.utcnow()
 
         (carto_dir / "run_summary.json").write_text(summary.model_dump_json(indent=2), encoding="utf-8")

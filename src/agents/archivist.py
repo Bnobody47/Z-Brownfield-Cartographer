@@ -149,6 +149,53 @@ This repo was analyzed by the Brownfield Cartographer. The current model include
     def _render_onboarding_brief(
         self, repo_root: Path, module_graph: KnowledgeGraph, lineage_graph: KnowledgeGraph
     ) -> str:
+        # Prefer LLM-synthesized Day-One answers if Semanticist provided them
+        day_one = module_graph.graph.graph.get("day_one_answers") or {}
+        if isinstance(day_one, dict) and all(k in day_one for k in ("q1", "q2", "q3", "q4", "q5")):
+            def _fmt(q: dict[str, Any]) -> tuple[str, str]:
+                ans = str(q.get("answer", "")).strip() or "(no answer)"
+                ev_list = q.get("evidence") or []
+                if isinstance(ev_list, list):
+                    ev = ", ".join(str(e) for e in ev_list[:8])
+                else:
+                    ev = str(ev_list)
+                return ans, ev or "(no explicit evidence)"
+
+            q1_a, q1_e = _fmt(day_one.get("q1", {}))
+            q2_a, q2_e = _fmt(day_one.get("q2", {}))
+            q3_a, q3_e = _fmt(day_one.get("q3", {}))
+            q4_a, q4_e = _fmt(day_one.get("q4", {}))
+            q5_a, q5_e = _fmt(day_one.get("q5", {}))
+
+            return f"""# FDE Day-One Brief
+
+## 1) What is the primary ingestion path?
+{q1_a}
+
+**Evidence:** {q1_e}
+
+## 2) What are the 3–5 most critical outputs?
+{q2_a}
+
+**Evidence:** {q2_e}
+
+## 3) What is the blast radius if a critical module fails?
+{q3_a}
+
+**Evidence:** {q3_e}
+
+## 4) Where is business logic concentrated vs distributed?
+{q4_a}
+
+**Evidence:** {q4_e}
+
+## 5) What changed most frequently recently?
+{q5_a}
+
+**Evidence:** {q5_e}
+"""
+
+        # Fallback: structural best-effort answers
         sources = self.hydrologist.find_sources(lineage_graph)
         sinks = self.hydrologist.find_sinks(lineage_graph)
 
